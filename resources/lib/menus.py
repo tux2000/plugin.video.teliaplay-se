@@ -163,7 +163,7 @@ class MenuList():
         for item in menu_items:
             plugin_url = self.addon.plugin_url({
                 "menu": "page",
-                "pageId": item["id"]
+                "pageId": item["link3"]["to"]
             })
             self._add_folder_item(items, item["name"], plugin_url)
 
@@ -247,8 +247,8 @@ class MenuList():
             if menu_id == submenu["title"]:
                 if submenu["__typename"] == "SelectionMediaPanel":
                     menu = submenu["selectionMediaContent"]
-                elif submenu["__typename"] == "MediaPanel":
-                    menu = submenu["mediaContent"]
+                elif submenu["__typename"] == "PosterListPanel":
+                    menu = submenu["posters"]
                 elif submenu["__typename"] == "ContinueWatchingPanel":
                     menu = submenu["continueWatchingContent"]
                 elif submenu["__typename"] == "MyListPanel":
@@ -259,7 +259,7 @@ class MenuList():
                     menu = submenu["rentalsContent"]
                 elif submenu["__typename"] == "ShowcasePanel":
                     menu = submenu["showcaseContent"]
-                elif submenu["__typename"] == "SingleFeaturePanel":
+                elif submenu["__typename"] == "SingleFeaturePanelX":
                     self.play_stream(submenu["id"], "vod")
                 elif submenu["__typename"] == "StoresPanel":
                     menu = submenu["storesContent"]
@@ -275,51 +275,50 @@ class MenuList():
 
         items = []
         for item in menu_items:
-            media = item["media"]
 
             try:
                 icon = urllib.parse.unquote(
-                    media["images"]["showcard2x3"]["source"]
+                    item["image"]["source"]
                 )
             except Exception:
                 icon = None
 
             try:
                 fanart = urllib.parse.unquote(
-                    media["images"]["showcard16x9"]["source"]
+                    item["images"]["showcard16x9"]["source"]
                 )
             except Exception:
                 fanart = None
 
             try:
-                genre = media["genre"]
+                genre = item["genre"]
             except Exception:
                 genre = ""
 
             try:
-                desc = media["description"]
+                desc = item["description"]
             except Exception:
                 desc = ""
 
             if not desc:
                 try:
-                    desc = media["descriptionLong"]
+                    desc = item["descriptionLong"]
                 except Exception:
                     desc = ""
 
             try:
-                imdb_url = media["ratings"]["imdb"]["url"]
+                imdb_url = item["ratings"]["imdb"]["url"]
                 imdb = imdb_url.split("/")[-1]
             except Exception:
                 imdb = ""
 
             try:
-                rating = media["ratings"]["imdb"]["readableScore"]
+                rating = item["ratings"]["imdb"]["readableScore"]
             except Exception:
                 rating = ""
 
             try:
-                duration = media["duration"]["readableShort"]
+                duration = item["duration"]["readableShort"]
                 duration = TimezoneStamps(
                     "Europe/Stockholm"
                 ).convert_to_seconds(duration)
@@ -329,7 +328,7 @@ class MenuList():
             context_url_add = self.addon.plugin_url({
                 "menu": "addToList" if menu_id != "Min lista"
                 else "removeFromList",
-                "mediaId": media["id"],
+                "mediaId": item["id"],
             })
             context_menu = [
                 (self.addon.localize(
@@ -339,13 +338,13 @@ class MenuList():
             ]
 
             try:
-                title = media["title"]
+                title = item["details"]["overlay"]["placeholder"]
                 label = "{0} [COLOR red]({1})[/COLOR]".format(
-                    title, media["price"]["readable"]
+                    title, item["price"]["readable"]
                 )
                 context_url_rent = self.addon.plugin_url({
                     "menu": "rent",
-                    "videoId": media["id"]
+                    "videoId": item["id"]
                 })
                 context_url_trailer = self.addon.plugin_url({
                     "menu": "play",
@@ -362,21 +361,21 @@ class MenuList():
                 )
                 is_rental = True
             except Exception:
-                label = media["title"]
+                label = title = item["details"]["overlay"]["placeholder"]
                 is_rental = False
 
-            if media["id"].startswith("s"):
+            if item["analytics"]["content_media_id"].startswith("s"):
                 plugin_url = self.addon.plugin_url({
                     "menu": "series",
-                    "seriesId": media["id"]
+                    "seriesId": item["analytics"]["content_media_id"]
                 })
                 is_folder = True
                 is_playable = False
-            elif media["id"].startswith("m"):
+            elif item["analytics"]["content_media_id"].startswith("m"):
                 plugin_url = self.addon.plugin_url({
                     "menu": "play",
                     "streamType": "rental" if is_rental else "vod",
-                    "streamId": media["id"]
+                    "streamId": item["analytics"]["content_media_id"]
                 })
                 is_folder = False
                 is_playable = True
@@ -616,49 +615,55 @@ class MenuList():
             if not search:
                 panel_items = panel["items"]
             else:
-                panel_items = panel["searchItems"]
+                panel_items = panel["posters"]
         except KeyError:
             panel_items = []
 
         for item in panel_items:
-            media = item["media"]
+
             try:
                 icon = urllib.parse.unquote(
-                    media["images"]["showcard2x3"]["source"]
+                    item["image"]["source"]
                 )
             except Exception:
                 icon = None
 
             try:
                 fanart = urllib.parse.unquote(
-                    media["images"]["showcard16x9"]["source"]
+                    item["images"]["showcard16x9"]["source"]
                 )
             except Exception:
                 fanart = None
 
             try:
-                description = media["descriptionLong"]
-            except Exception:
-                description = ""
-
-            try:
-                genre = media["genre"]
+                genre = item["genre"]
             except Exception:
                 genre = ""
 
             try:
-                imdb_url = media["ratings"]["imdb"]["url"]
+                description = item["description"]
+            except Exception:
+                description = ""
+
+            if not description:
+                try:
+                    description = item["descriptionLong"]
+                except Exception:
+                    description = ""
+
+            try:
+                imdb_url = item["ratings"]["imdb"]["url"]
                 imdb = imdb_url.split("/")[-1]
             except Exception:
                 imdb = ""
 
             try:
-                rating = media["ratings"]["imdb"]["readableScore"]
+                rating = item["ratings"]["imdb"]["readableScore"]
             except Exception:
                 rating = ""
 
             try:
-                duration = media["duration"]["readableShort"]
+                duration = item["duration"]["readableShort"]
                 duration = TimezoneStamps(
                     "Europe/Stockholm"
                 ).convert_to_seconds(duration)
@@ -667,20 +672,21 @@ class MenuList():
 
             context_url_add = self.addon.plugin_url({
                 "menu": "addToList",
-                "mediaId": media["id"],
+                "mediaId": item["id"],
             })
             context_menu = [
                 (self.addon.localize(30020),
                  "RunPlugin({0})".format(context_url_add))
-            ]
+            ]                
+
             try:
-                title = media["title"]
+                title = item["details"]["overlay"]["placeholder"]
                 label = "{0} [COLOR red]({1})[/COLOR]".format(
-                    title, media["price"]["readable"]
+                    title, item["price"]["readable"]
                 )
                 context_url_rent = self.addon.plugin_url({
                     "menu": "rent",
-                    "videoId": media["id"]
+                    "videoId": item["id"]
                 })
                 context_url_trailer = self.addon.plugin_url({
                     "menu": "play",
@@ -697,21 +703,21 @@ class MenuList():
                 )
                 is_rental = True
             except Exception:
-                label = media["title"]
+                label = title = item["details"]["overlay"]["placeholder"]
                 is_rental = False
 
-            if media["id"].startswith("s"):
+            if item["analytics"]["content_media_id"].startswith("s"):
                 plugin_url = self.addon.plugin_url({
                     "menu": "series",
-                    "seriesId": media["id"]
+                    "seriesId": item["analytics"]["content_media_id"]
                 })
                 is_folder = True
                 is_playable = False
-            elif media["id"].startswith("m"):
+            elif item["analytics"]["content_media_id"].startswith("m"):
                 plugin_url = self.addon.plugin_url({
                     "menu": "play",
                     "streamType": "rental" if is_rental else "vod",
-                    "streamId": media["id"]
+                    "streamId": item["analytics"]["content_media_id"]
                 })
                 is_folder = False
                 is_playable = True
@@ -915,10 +921,10 @@ class MenuList():
 
         items = []
         for episode in episodes:
-            episode = episode["episode"]
+
             try:
                 icon = urllib.parse.unquote(
-                    episode["images"]["showcard2x3"]["source"]
+                    episode["image"]["source"]
                 )
             except Exception:
                 icon = None
@@ -968,7 +974,7 @@ class MenuList():
                 )
                 context_url = self.addon.plugin_url({
                     "menu": "rent",
-                    "videoId": episode["id"]
+                    "videoId": episode["analytics"]["content_media_id"]
                 })
                 context_menu = [
                     (self.addon.localize(30015),
@@ -976,14 +982,14 @@ class MenuList():
                 ]
                 is_rental = True
             except Exception:
-                episode_label = episode["episodeNumber"]["readable"]
+                episode_label = episode["details"]["aside"]["header"]
                 context_menu = None
                 is_rental = False
 
             plugin_url = self.addon.plugin_url({
                 "menu": "play",
                 "streamType": "rental" if is_rental else "vod",
-                "streamId": episode["id"]
+                "streamId": episode["analytics"]["content_media_id"]
             })
 
             label = "{0} [COLOR orange]{1}[/COLOR] [COLOR yellow]{2}[/COLOR]".format(

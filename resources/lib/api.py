@@ -36,15 +36,15 @@ class TeliaPlay():
     @property
     def graphql_hashes(self):
        return {
-            "getMainMenu":      "90954cfc4db13a9e1112c7d22542a9b9889aa01afe9b28092a4a0b11e6e614ec",
-            "search2":          "8c668c4d671def803083c4753cf85f883aa91459d81b0aae6c7f5b400dc59779",
-            "getPage":          "102f45db97d1f8357a891550d1f6fef4bc69dbe68c824ede0982503bca8366eb",
+            "getMainMenu":      "74a6ce5661c0afdf5bfa34cc01a38382f0a65faa35b71dd4b8ac7702b968ef5e",
+            "search2":          "b6dc1cdd0aa4757cb115f4aa7e13d73c02526bf84bc22d1a609aa777b9530063",
+            "getPage":          "a31270a3fee56b71eae50f27af934cd447dee19bba5fb4359b883756b0b540b5",
             "getTvChannels":    "eac2953c16d1077ef980b003c21b779d18b0d9b912c2cdb2a797be5d14865bba",
             "getTvChannel":     "dc6745d8e00726941f6bef40de7fcb28335027cbd404fe0fe16bd933359d3012",
             "getStorePage":     "2ad5fafd846ce292b22cb126fd03ce5404643cf8c88370ab7837b9dc69e2b2f7",
             "getPanel":         "0bd6167e23406bf60133b46073c35355865c1e041f29072c8034680067799521",
-            "getCdpSeries":     "78f6a38c394d44e5a5714c4f304033b5c9b2ac63553c98fb7f54e3b91fea9e0f",
-            "getCdpSeason":     "7e3df0d08104a71352f30031abf2e895360c67064edd3311f2bc27deaf889863",
+            "getCdpSeries":     "1b0198be55a3f9dbe722826910dd45d14fd3d11a35c45d8e20b8cebd66c6c37c",
+            "getCdpSeason":     "5db2beadf8031eea863afdb00e6aa8c3551356fc0dac428515b2ef8a1b7055ac",
             "addToMyList":      "a8369da660da6f45e0eabd53756effcd4c40668f1794a853c298c29e7903c7f9",
             "removeFromMyList": "630c2f99d817682d4f15d41084cdc2f40dc158a5dae0bd2ab0e815ce268da277"
         }
@@ -250,7 +250,8 @@ class TeliaPlay():
             request, headers=headers
         ).json()
         error_check(response_json)
-        return response_json["data"]["page"]["pagePanels"]["items"]
+        filtered_list = [item for item in response_json["data"]["page"]["pagePanels"]["panels"] if "title" in item]
+        return filtered_list
 
     def get_channels(self, timestamp, channel_limit=3, offset=0):
         request = {
@@ -444,7 +445,7 @@ class TeliaPlay():
                 "host": "graphql-telia.t6a.net",
                 "filename": "/graphql",
                 "query": {
-                    "operationName": "getCdpSeason",
+                    "operationName": "getCdpSeasonPanel",
                     "variables": {
                         "seasonId": season_id,
                         "sort": {
@@ -473,7 +474,7 @@ class TeliaPlay():
             request, headers=headers
         ).json()
         error_check(response_json)
-        return response_json["data"]["season"]["episodes"]["episodeList"]
+        return response_json["data"]["season"]["panel"]["posters"]["items"]
 
     def validate_stream(self):
         request = {
@@ -620,7 +621,7 @@ class TeliaPlay():
         request = {
             "POST": {
                 "scheme": "https",
-                "host": "streaminggateway-telia.clientapi-prod.live.tv.telia.net",
+                "host": "streaminggateway.clientapi-prod.live.tv.telia.net",
                 "filename": "/streaminggateway/rest/secure/v2/streamingticket/"
                 "{0}/{1}".format(
                     "CHANNEL" if stream_type == "live" else "MEDIA", stream_id),
@@ -680,7 +681,7 @@ class TeliaPlay():
         request = {
             "DELETE": {
                 "scheme": "https",
-                "host": "streaminggateway-telia.clientapi-prod.live.tv.telia.net",
+                "host": "streaminggateway.clientapi-prod.live.tv.telia.net",
                 "filename": "/streaminggateway/rest/secure/v2/streamingticket/CHANNEL/18",
                 "query": {
                     "sessionId": self.session_id,
